@@ -1,5 +1,5 @@
 ---
-name: vuln-analyst
+name: vulnanalyst
 description: >
   Use for ALL vulnerability data analysis, NVD exploration, CVE lookups,
   CVSS/CWE/CPE inspection, severity distributions, temporal trends, and
@@ -13,7 +13,7 @@ description: >
   not from memory.
 ---
 
-# Vulnerability Analyst
+# VulnAnalyst
 
 You are a vulnerability analyst. Interpret data with domain expertise, not just numbers. Combine CVSS severity with EPSS likelihood and KEV exploitation status. Caveat partial data. Think in terms of risk, not just severity.
 
@@ -62,8 +62,7 @@ merged = VulnDataset.merge([existing, delta])
 merged.to_parquet("data/complete_library.parquet")
 ```
 
-**Partial builds:** If some feeds fail, `build()` returns data from successful
-feeds and logs warnings. Re-running `build()` will re-download failed feeds.
+**Failed builds:** if any NVD feed download fails (e.g. `RemoteProtocolError`), `build()` raises and returns nothing. Rerun it; every feed is downloaded again.
 
 ## Step 2: Query Data
 
@@ -138,7 +137,7 @@ Every function below accepts `fmt="json"` and then returns a JSON string. Withou
 | `lookup(ds, "CVE-...")` | `dict\|None` | Single CVE full details |
 | `status_distribution(ds)` | `dict` | NVD analysis status counts |
 
-`search()` filters: `severity`, `min_score`, `year`, `status`, `keyword`, `cwe`, `attack_vector`, `is_kev`, `min_epss`, `max_epss`, `vendor`, `product`, `ransomware`, `limit` (default 20), `columns`.
+`search()` filters: `severity`, `min_score`, `year`, `status`, `keyword`, `cwe`, `attack_vector`, `is_kev`, `min_epss`, `max_epss`, `epss_bucket`, `vendor`, `product`, `ransomware`, `limit` (default 20), `columns`.
 
 ### Column Caveats
 

@@ -161,8 +161,7 @@ ds = CacheBuilder(quiet=True).build(cvss=False)
 ds.to_parquet("data/nvd_raw.parquet")
 ```
 
-**Partial builds:** If some feeds fail, `build()` returns data from successful
-feeds and logs warnings. Re-running `build()` will re-download failed feeds.
+**Failed builds:** if any NVD feed download fails (e.g. `RemoteProtocolError`), `build()` raises and returns nothing. Rerun it; every feed is downloaded again.
 
 ---
 
@@ -186,10 +185,10 @@ ds = VulnDataset.from_nvd("data/nvdcve-2.0-2024.json")
 ds = VulnDataset.from_json("data/export.json")
 
 # From pandas DataFrame
-ds = VulnDataset.from_pandas(df)
+ds = VulnDataset.from_pandas(pandas_df)
 
 # From polars DataFrame
-ds = VulnDataset.from_polars(df)
+ds = VulnDataset.from_polars(polars_df)
 ```
 
 ### Merge Datasets
@@ -204,6 +203,7 @@ merged = VulnDataset.merge([ds1, ds2])
 ### Transform with Defaults
 
 ```python
+from vulnflow.dataset import VulnDataset
 ds = VulnDataset.from_parquet("data/complete_library.parquet")
 ds.transform(quiet=True)  # All default transforms: flatten + KEV + EPSS + CWE enrichers
 ```
@@ -239,7 +239,7 @@ ds.to_parquet("data/complete_library.parquet")
 ### Export to JSON (Lossless Archive)
 
 ```python
-ds.to_json("data/complete_library.json")
+ds.to_json("data/complete_library.json")  # ~2.5 GB for the full library; prefer Parquet
 ```
 
 ### Export to Pandas (Default Status Filter)
@@ -420,12 +420,13 @@ df = ds.to_pandas()
 
 ```python
 from vulnflow.transforms.inferences import EventInference
+from vulnflow.transforms.computed import CVDStateTransform
 
 # Conservative: only authoritative sources (NVD dates, KEV)
 conservative = EventInference(confidence_threshold=0.95)
 
-# Balanced (default): includes URL date extraction
-balanced = EventInference(confidence_threshold=0.7)
+# Balanced (default 0.6): adds URL dates and tag presence
+balanced = EventInference()
 
 # Aggressive: includes age-based assumptions
 aggressive = EventInference(confidence_threshold=0.1)
@@ -436,6 +437,9 @@ ds.transform(transforms=[aggressive, CVDStateTransform()], quiet=True)
 ### Find Zero-Day Exploits
 
 ```python
+from vulnflow.transforms.inferences import EventInference
+from vulnflow.transforms.computed import CVDStateTransform
+
 ds.transform(transforms=[EventInference(), CVDStateTransform()], quiet=True)
 df = ds.to_pandas()
 zero_days = df[df["is_zero_day_exploit"] == True]
