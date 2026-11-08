@@ -8,7 +8,9 @@ description: >
   lookups, building/refreshing the NVD cache, EPSS exploitation probability,
   KEV active exploitation, zero-day analysis, CVD coordination state,
   vendor vulnerability trends, remediation metrics, any question about the
-  vulnflow library or its data.
+  vulnflow library or its data. ALWAYS use when the user names a specific
+  CVE ID (e.g. "tell me about CVE-2021-44228"): answer from the local data,
+  not from memory.
 ---
 
 # Vulnerability Analyst
@@ -144,11 +146,13 @@ Use these exact values when filtering raw columns:
 
 | Column | Values | Note |
 |--------|--------|------|
-| `cvss_base_severity` | `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, `NONE` | Full names |
-| `cvss_attack_vector` | `N`, `A`, `L`, `P` | Abbreviations. explore functions also accept `NETWORK`, `ADJACENT`, `LOCAL`, `PHYSICAL` |
-| `cvss_attack_complexity` | `L`, `H` (v3), `L`, `M`, `H` (v2) | Only v2 has `M` |
-| `cvss_privileges_required`, `cvss_user_interaction` | `N`/`L`/`H`, `N`/`R` | Empty for CVSS v2 records |
-| `cvss_version` | `2.0`, `3.0`, `3.1` | Check before comparing metrics across versions |
+| `cvss_base_severity` | `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, `NONE` | |
+| `cvss_attack_vector` | `NETWORK`, `ADJACENT_NETWORK` (v2), `ADJACENT` (v3/v4), `LOCAL`, `PHYSICAL` | Match both adjacent spellings |
+| `cvss_attack_complexity` | `LOW`, `HIGH`, `MEDIUM` (v2 only) | |
+| `cvss_privileges_required` | `NONE`, `LOW`, `HIGH` | Empty for CVSS v2 records |
+| `cvss_user_interaction` | `NONE`, `REQUIRED`, `PASSIVE`/`ACTIVE` (v4) | Empty for CVSS v2 records |
+| `cvss_version` | `2.0`, `3.0`, `3.1`, `4.0` | Scores across versions are not directly comparable |
+| `cpe_vendor` | one vendor per CVE | First CPE match only: multi-vendor CVEs count once, and ~25% of recent CVEs have none. Use `kev_vendor` for KEV questions |
 | `nvd_status` | `analyzed`, `modified`, `awaiting`, `deferred`, `rejected` | Lowercase. Use these for `search(status=)` |
 | `kev_ransomware` | `True`, `False`, empty | Empty when the CVE is not in KEV |
 
@@ -159,7 +163,7 @@ When no explore function covers the query, filter `VulnDataset` columns directly
 ```python
 from vulnflow.helpers import explore
 ds = explore.load()
-mask = (ds.get_column("cvss_attack_vector") == "N") & (ds.get_column("is_kev") == True)
+mask = (ds.get_column("cvss_attack_vector") == "NETWORK") & (ds.get_column("is_kev") == True)
 print(len(ds.get_column("cve_id")[mask]))
 ```
 
@@ -186,6 +190,8 @@ print(explore.describe_nested(ds, "cpes", "product", n=15, fmt="json"))
 ## Step 3: Interpret and Answer
 
 Read the JSON output and synthesize an analyst-quality answer:
+
+- **Trust zero, but verify it.** If a filtered call returns `total: 0` where data clearly should exist, check the raw column values (see Column Caveats) before reporting "none".
 
 - **State findings, don't dump data.** "CWE-79 (XSS) is the most common weakness at 15% of all CVEs" not "here's the raw output."
 - **Combine signals.** CVSS severity + EPSS probability + KEV status = risk picture.

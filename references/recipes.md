@@ -29,14 +29,14 @@ print(explore.status_distribution(ds, fmt="json"))
 ### Filtered Severity Breakdown
 
 ```python
-# By attack vector (accepts full name or abbreviation: NETWORK/N, ADJACENT/A, LOCAL/L, PHYSICAL/P)
+# By attack vector (NETWORK, ADJACENT, LOCAL, PHYSICAL). If it returns total 0, use Raw Column Filtering below
 print(explore.describe_severity(ds, attack_vector="NETWORK", fmt="json"))
 
 # By minimum CVSS score
 print(explore.describe_severity(ds, min_score=9.0, fmt="json"))
 
 # Combined filters
-print(explore.describe_severity(ds, attack_vector="N", min_score=9.0, fmt="json"))
+print(explore.describe_severity(ds, attack_vector="NETWORK", min_score=9.0, fmt="json"))
 ```
 
 ### Nested Column Inspection
@@ -77,10 +77,10 @@ print(explore.weakness_profile(ds, year=2025, top_n=15, fmt="json"))
 
 ```python
 import numpy as np
-# cvss_attack_vector stores N/A/L/P, not full names
+# cvss_attack_vector stores full names: NETWORK, ADJACENT_NETWORK/ADJACENT, LOCAL, PHYSICAL
 av = ds.get_column("cvss_attack_vector")
 sev = ds.get_column("cvss_base_severity")
-mask = (av == "N") & (sev == "CRITICAL")
+mask = (av == "NETWORK") & (sev == "CRITICAL")
 print(int(np.sum(mask)))
 ```
 

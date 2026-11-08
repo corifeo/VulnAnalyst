@@ -27,7 +27,7 @@ Technical severity score (0-10). Measures inherent characteristics, NOT risk.
 | LOW | 0.1-3.9 | Hard to exploit or minimal impact |
 | NONE | 0.0 | Informational |
 
-Key vectors in vulnflow are stored as CVSS abbreviations: `cvss_attack_vector` (`N`/`A`/`L`/`P` = Network/Adjacent/Local/Physical), `cvss_attack_complexity` (`L`/`H`, plus `M` in CVSS v2), `cvss_privileges_required` (`N`/`L`/`H`), `cvss_user_interaction` (`N`/`R`). The last two are empty for CVSS v2 records.
+Key vectors in vulnflow are stored as full names: `cvss_attack_vector` (`NETWORK`/`ADJACENT_NETWORK` or `ADJACENT`/`LOCAL`/`PHYSICAL`), `cvss_attack_complexity` (`LOW`/`HIGH`, plus `MEDIUM` in CVSS v2), `cvss_privileges_required` (`NONE`/`LOW`/`HIGH`), `cvss_user_interaction` (`NONE`/`REQUIRED`, plus `PASSIVE`/`ACTIVE` in CVSS v4). The last two are empty for CVSS v2 records.
 
 **Critical nuance:** CVSS measures *technical severity*, not *risk*. A CVSS 10.0 in unused software is less urgent than a CVSS 7.0 being actively exploited. Always combine CVSS with EPSS and KEV for prioritization.
 
