@@ -48,19 +48,20 @@ Read the output and decide:
 **Always save to `data/complete_library.parquet`.** `data_info()` and `explore.load()` only read that path; any other path is invisible to them.
 
 ```python
-# Complete library (all years, 2002-present)
+# Complete library (every yearly NVD feed), then run the update below
 from vulnflow.helpers import CacheBuilder
-ds = CacheBuilder(include_modified=True, quiet=True).build()
+ds = CacheBuilder(quiet=True).build()
 ds.to_parquet("data/complete_library.parquet")
 
-# Update existing cache with latest modified data
+# Update existing cache with latest modified data (upsert: one row per CVE, newest wins)
 from vulnflow.dataset import VulnDataset
 from vulnflow.helpers import CacheBuilder
-existing = VulnDataset.from_parquet("data/complete_library.parquet")
-delta = CacheBuilder(modified_only=True, quiet=True).build()
-merged = VulnDataset.merge([existing, delta])
-merged.to_parquet("data/complete_library.parquet")
+CacheBuilder(modified_only=True, quiet=True).build().to_parquet("data/modified_delta.parquet")
+ds = VulnDataset.from_parquet(["data/complete_library.parquet", "data/modified_delta.parquet"])
+ds.to_parquet("data/complete_library.parquet")
 ```
+
+**Never `VulnDataset.merge()` or `include_modified=True` to update the cache.** Both concatenate without deduplicating, so every modified CVE is counted twice (~12k extra rows, ~6% inflation in recent-year counts). Only multi-file `from_parquet([...])` upserts by `cve_id`.
 
 **Failed builds:** if any NVD feed download fails (e.g. `RemoteProtocolError`), `build()` raises and returns nothing. Rerun it; every feed is downloaded again.
 

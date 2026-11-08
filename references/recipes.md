@@ -101,7 +101,11 @@ print(explore.describe_yearly(ds, fmt="json"))
 
 ```python
 from vulnflow.helpers import CacheBuilder
-ds = CacheBuilder(include_modified=True, quiet=True).build()
+from vulnflow.dataset import VulnDataset
+CacheBuilder(quiet=True).build().to_parquet("data/complete_library.parquet")
+# Add the latest modifications as an upsert (include_modified=True would duplicate them)
+CacheBuilder(modified_only=True, quiet=True).build().to_parquet("data/modified_delta.parquet")
+ds = VulnDataset.from_parquet(["data/complete_library.parquet", "data/modified_delta.parquet"])
 ds.to_parquet("data/complete_library.parquet")
 ```
 
@@ -129,10 +133,10 @@ ds.to_parquet("data/complete_library.parquet")
 ```python
 from vulnflow.helpers import CacheBuilder
 from vulnflow.dataset import VulnDataset
-existing = VulnDataset.from_parquet("data/complete_library.parquet")
-delta = CacheBuilder(modified_only=True, quiet=True).build()
-merged = VulnDataset.merge([existing, delta])
-merged.to_parquet("data/complete_library.parquet")
+CacheBuilder(modified_only=True, quiet=True).build().to_parquet("data/modified_delta.parquet")
+# Multi-file from_parquet upserts on cve_id (later file wins); VulnDataset.merge() would duplicate
+ds = VulnDataset.from_parquet(["data/complete_library.parquet", "data/modified_delta.parquet"])
+ds.to_parquet("data/complete_library.parquet")
 ```
 
 ### Recent Feed Only (Fast Check)
@@ -149,8 +153,9 @@ ds.to_parquet("data/nvd_recent_feed.parquet")
 from pathlib import Path
 from vulnflow.helpers import CacheBuilder
 Path("data/complete_library.parquet").unlink(missing_ok=True)  # only the cache, not the whole data/ folder
-ds = CacheBuilder(include_modified=True, quiet=True).build(timeout=300.0)
+ds = CacheBuilder(quiet=True).build(timeout=300.0)
 ds.to_parquet("data/complete_library.parquet")
+# Then run Quick Update to add the Modified feed
 ```
 
 ### Build Without CVSS Flattening
@@ -197,8 +202,10 @@ ds = VulnDataset.from_polars(polars_df)
 from vulnflow.dataset import VulnDataset
 ds1 = VulnDataset.from_nvd("2024.json")
 ds2 = VulnDataset.from_parquet("cache.parquet")
-merged = VulnDataset.merge([ds1, ds2])
+merged = VulnDataset.merge([ds1, ds2])  # plain concatenation: a CVE in both appears twice
 ```
+
+For one row per CVE, save both to Parquet and load them together: `VulnDataset.from_parquet(["a.parquet", "b.parquet"])` (later file wins).
 
 ### Transform with Defaults
 

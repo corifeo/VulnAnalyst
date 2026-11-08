@@ -25,7 +25,7 @@
 
 Ask "what should we patch first?", "which vendors had the most critical CVEs in 2025?" or "what is CVE-2021-44228?". VulnAnalyst answers from data, not from memory:
 
-- **Local and complete.** It checks for an NVD library, builds or refreshes one if needed (all 433,000 CVEs in about two minutes), and queries it in place.
+- **Local and complete.** It checks for an NVD library, builds or refreshes one if needed (all 421,000 CVEs in about two minutes), and queries it in place.
 - **Risk, not just severity.** Every answer weighs CVSS against EPSS and KEV, and says when data is partial: unanalyzed CVEs, missing CPEs, the current year in progress.
 - **Checkable.** It answers through vulnflow's `explore` helpers, so every figure traces back to one Python call you can rerun.
 
@@ -49,7 +49,7 @@ The library is written to `data/complete_library.parquet` in the project root. T
 
 ## Examples
 
-Each screenshot shows the question, the `explore` call the skill makes for it, and the result on a full NVD build (433,329 CVEs, 8 November 2026). The quoted answers are condensed from a fresh Claude Code session with only this skill installed.
+Each screenshot shows the question, the `explore` call the skill makes for it, and the result on a full NVD build (421,099 unique CVEs, 8 November 2026). The quoted answers are condensed from a fresh Claude Code session with only this skill installed.
 
 **"Tell me about CVE-2021-44228. How bad is it really?"**
 
@@ -62,22 +62,22 @@ Each screenshot shows the question, the `explore` call the skill makes for it, a
 **"How many known exploited vulnerabilities are linked to ransomware, and which vendors dominate?"**
 
 <p align="center">
-  <img src=".github/assets/ransomware.svg" alt="361 of 1,783 KEV entries (20%) are linked to ransomware; Microsoft leads with 117; QNAP (82%) and SonicWall (62%) have the highest ransomware share" width="85%">
+  <img src=".github/assets/ransomware.svg" alt="361 of 1,769 KEV entries (20%) are linked to ransomware; Microsoft leads with 117; QNAP (82%) and SonicWall (65%) have the highest ransomware share" width="85%">
 </p>
 
-> 361 of 1,783 KEV entries (20%). Microsoft leads with 117. By share, QNAP (82% of its KEV entries) and SonicWall (62%) are the most ransomware-prone.
+> 361 of 1,769 KEV entries (20%). Microsoft leads with 117. By share, QNAP (82% of its KEV entries) and SonicWall (65%) are the most ransomware-prone.
 
 **"How has the number of critical, network-exploitable CVEs changed over the last 10 years?"**
 
 <p align="center">
-  <img src=".github/assets/trend.svg" alt="CVSS v3 critical and network CVEs per year, 2016 to 2026: from 885 to 9,333, while the share of v3-scored CVEs stays between 12% and 18%" width="85%">
+  <img src=".github/assets/trend.svg" alt="CVSS v3 critical and network CVEs per year, 2016 to 2026: from 885 to 8,744, while the share of v3-scored CVEs stays between 12% and 18%" width="85%">
 </p>
 
-> CVSS v3 critical plus network rose from 2,107 (2017) to 5,993 (2025), with 9,333 in 2026 through November. The share stays at 12–18% of v3-scored CVEs, so the growth tracks overall CVE volume.
+> CVSS v3 critical plus network rose from 2,107 (2017) to 5,810 (2025), with 8,744 in 2026 through November. The share stays at 12–18% of v3-scored CVEs, so the growth tracks overall CVE volume.
 
 **"Which vendors had the most critical CVEs published in 2025?"**
 
-> 6,651 critical CVEs. The top of the list is bulk-reported PHP projects and routers: phpgurukul 319, campcodes 243, fabian 172, code-projects 134, dlink 105. Among major vendors, Apple has 95 and Microsoft 54. About 26% have no CPE vendor yet.
+> 6,466 critical CVEs. The top of the list is bulk-reported PHP projects and routers: phpgurukul 315, campcodes 243, fabian 171, code-projects 133, dlink 102. Among major vendors, Apple has 95 and Microsoft 54. About 26% have no CPE vendor yet.
 
 ## How it works
 
