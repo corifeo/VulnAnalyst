@@ -48,22 +48,18 @@ Read the output and decide:
 **Always save to `data/complete_library.parquet`.** `data_info()` and `explore.load()` only read that path; any other path is invisible to them.
 
 ```python
-# Complete library (every yearly NVD feed), then run the update below
+# Build if missing, otherwise update in place: merges the Modified feed (one row per CVE,
+# newest wins), refreshes EPSS/KEV on every row, and rebuilds if the cache is older than
+# the feed's 7.5-day window
 from vulnflow.helpers import CacheBuilder
-ds = CacheBuilder(quiet=True).build()
-ds.to_parquet("data/complete_library.parquet")
-
-# Update existing cache with latest modified data (upsert: one row per CVE, newest wins)
-from vulnflow.dataset import VulnDataset
-from vulnflow.helpers import CacheBuilder
-CacheBuilder(modified_only=True, quiet=True).build().to_parquet("data/modified_delta.parquet")
-ds = VulnDataset.from_parquet(["data/complete_library.parquet", "data/modified_delta.parquet"])
-ds.to_parquet("data/complete_library.parquet")
+ds = CacheBuilder(include_modified=True, quiet=True).ensure("data/complete_library.parquet", recent=True)
 ```
 
-**Never `VulnDataset.merge()` or `include_modified=True` to update the cache.** Both concatenate without deduplicating, so every modified CVE is counted twice (~12k extra rows, ~6% inflation in recent-year counts). Only multi-file `from_parquet([...])` upserts by `cve_id`.
+Requires vulnflow 0.2.0 or later. Older versions duplicate modified CVEs on `merge()`/`include_modified=True` and leave EPSS stale.
 
-**Failed builds:** if any NVD feed download fails (e.g. `RemoteProtocolError`), `build()` raises and returns nothing. Rerun it; every feed is downloaded again.
+**Failed builds:** `build()` retries dropped downloads. If some feeds still fail, it warns and returns the rest; rerun to fill the gap. It raises only when every feed fails.
+
+**Alternative source, cvelistV5:** `CacheBuilder(source="cvelist")` builds from the CVE Program's own records. They're fresher (hourly releases) and carry CNA/CISA-ADP data, including SSVC in `metadata`. NVD remains better for CPE configurations and pre-2024 CVSS/CWE. `nvd_status` is `published`/`rejected`. Save it under a different path, so it doesn't replace the NVD library that `explore.load()` reads.
 
 ## Step 2: Query Data
 

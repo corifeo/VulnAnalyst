@@ -101,11 +101,8 @@ print(explore.describe_yearly(ds, fmt="json"))
 
 ```python
 from vulnflow.helpers import CacheBuilder
-from vulnflow.dataset import VulnDataset
-CacheBuilder(quiet=True).build().to_parquet("data/complete_library.parquet")
-# Add the latest modifications as an upsert (include_modified=True would duplicate them)
-CacheBuilder(modified_only=True, quiet=True).build().to_parquet("data/modified_delta.parquet")
-ds = VulnDataset.from_parquet(["data/complete_library.parquet", "data/modified_delta.parquet"])
+# Yearly feeds + Modified feed, one row per CVE (newest wins); vulnflow >= 0.2.0
+ds = CacheBuilder(include_modified=True, quiet=True).build()
 ds.to_parquet("data/complete_library.parquet")
 ```
 
@@ -132,11 +129,23 @@ ds.to_parquet("data/complete_library.parquet")
 
 ```python
 from vulnflow.helpers import CacheBuilder
-from vulnflow.dataset import VulnDataset
-CacheBuilder(modified_only=True, quiet=True).build().to_parquet("data/modified_delta.parquet")
-# Multi-file from_parquet upserts on cve_id (later file wins); VulnDataset.merge() would duplicate
-ds = VulnDataset.from_parquet(["data/complete_library.parquet", "data/modified_delta.parquet"])
-ds.to_parquet("data/complete_library.parquet")
+# Merges the Modified feed (newest record per CVE wins), refreshes EPSS/KEV on every row,
+# and rebuilds if the cache is older than the feed's 7.5-day window; vulnflow >= 0.2.0
+ds = CacheBuilder(include_modified=True, quiet=True).ensure("data/complete_library.parquet", recent=True)
+```
+
+### cvelistV5 Library (Alternative Source)
+
+```python
+from vulnflow.helpers import CacheBuilder
+from vulnflow.helpers import explore
+# First run downloads the ~660 MB midnight zip (~2 min to parse); later runs the same day merge the hourly delta
+CacheBuilder(source="cvelist", quiet=True).ensure("data/cvelist_library.parquet", recent=True)
+ds = explore.load("data/cvelist_library.parquet")
+
+# With cve-validation-library checks (needs vulnflow[cvelist]): adds cve_valid, cve_validation_error
+from vulnflow.extractors import CVEListExtractor
+ds = CVEListExtractor("release.zip.zip", validate=True).extract()
 ```
 
 ### Recent Feed Only (Fast Check)
@@ -202,10 +211,8 @@ ds = VulnDataset.from_polars(polars_df)
 from vulnflow.dataset import VulnDataset
 ds1 = VulnDataset.from_nvd("2024.json")
 ds2 = VulnDataset.from_parquet("cache.parquet")
-merged = VulnDataset.merge([ds1, ds2])  # plain concatenation: a CVE in both appears twice
+merged = VulnDataset.merge([ds1, ds2])  # one row per CVE: newest nvd_modified_at wins (vulnflow >= 0.2.0)
 ```
-
-For one row per CVE, save both to Parquet and load them together: `VulnDataset.from_parquet(["a.parquet", "b.parquet"])` (later file wins).
 
 ### Transform with Defaults
 
